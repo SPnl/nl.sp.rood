@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<menu>
+    <item>
+        <path>civicrm/member/upgrade_rood</path>
+        <page_callback>CRM_Rood_Form_UpgradeRoodMembership</page_callback>
+        <title>Upgrade rood lidmaatschappen</title>
+        <access_arguments>edit memberships</access_arguments>
+    </item>
+</menu>

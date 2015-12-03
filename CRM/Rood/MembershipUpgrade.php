@@ -1,0 +1,93 @@
+<?php
+
+class CRM_Rood_MembershipUpgrade {
+
+  public static function UpgradeFromQueue(CRM_Queue_TaskContext $ctx, $mid, $params) {
+    $today = new DateTime();
+    $membership = civicrm_api3('Membership', 'getsingle', array('id' => $mid));
+    unset($membership['id']);
+
+    $dao = CRM_Core_DAO::executeQuery("
+      SELECT `c`.`id` AS `contribution_id`, MAX(`c`.`receive_date`)
+      FROM `civicrm_membership`
+      LEFT JOIN `civicrm_membership_payment` `mp` ON `civicrm_membership`.`id` = `mp`.`membership_id`
+      LEFT JOIN `civicrm_contribution` `c` ON `mp`.`contribution_id` = `c`.`id` AND c.receive_date <= civicrm_membership.end_date
+      WHERE civicrm_membership.id = %1
+      LIMIT 0, 1", array(1=>array($mid, 'Integer')));
+
+    if($dao->fetch()) {
+      $contribution = self::getRenewalPayment($dao->contribution_id);
+
+      $renewTransaction = new CRM_Core_Transaction();
+
+      $membership['membership_type_id'] = $params['sp_mtype'];
+      $membership['start_date'] = $today->format('Ymd');
+      if ($today->format('m') >= 10) {
+        $newEndDate = clone $today;
+        $newEndDate->modify('last day of +1 year');
+        $membership['end_date'] = $newEndDate->format('Ymd');
+      }
+      $new_membership = civicrm_api3('Membership', 'create', $membership);
+
+
+      if ($contribution) {
+        $contribution['financial_type_id'] = civicrm_api3('MembershipType', 'getvalue', array('return' => 'financial_type_id', 'id' => $params['sp_mtype']));
+        $result = civicrm_api3('Contribution', 'create', $contribution);
+        if (((float) $contribution['total_amount']) < ((float) $params['minimum_fee'])) {
+          $contribution['total_amount'] = $params['minimum_fee'];
+        }
+
+        $membershipPayment['contribution_id'] = $result['id'];
+        $membershipPayment['membership_id'] = $new_membership['id'];
+        civicrm_api3('MembershipPayment', 'create', $membershipPayment);
+      }
+
+
+      $oldMembership['id'] = $mid;
+      $oldMembership['end_date'] = $today->format('Ymd');
+      civicrm_api3('Membership', 'create', $oldMembership);
+
+      $renewTransaction->commit();
+    }
+    return true;
+  }
+
+  protected static function getRenewalPayment($contributionId) {
+    if (!$contributionId) {
+      return false;
+    }
+
+    try {
+      $contribution = civicrm_api3('Contribution', 'getsingle', array('id' => $contributionId));
+    } catch (Exception $ex) {
+      return false;
+    }
+
+    $receiveDate = new DateTime();
+    $contribution['receive_date'] = $receiveDate->format('YmdHis');
+    $contribution['contribution_status_id'] = 2;//pending
+    $instrument_id = self::getPaymenyInstrument($contribution);
+    unset($contribution['payment_instrument']);
+    unset($contribution['instrument_id']);
+    if ($instrument_id) {
+      $params['contribution_payment_instrument_id'] = $instrument_id;
+    }
+    unset($contribution['contribution_id']);
+    unset($contribution['invoice_id']);
+    unset($contribution['id']);
+    return $contribution;
+  }
+
+  protected static function getPaymenyInstrument($contribution) {
+    if (empty($contribution['instrument_id'])) {
+      return false;
+    }
+
+    $instrument_id = CRM_Core_OptionGroup::getValue('payment_instrument', $contribution['instrument_id'], 'id', 'Integer');
+    if (empty($instrument_id)) {
+      return false;
+    }
+    return $instrument_id;
+  }
+
+}
