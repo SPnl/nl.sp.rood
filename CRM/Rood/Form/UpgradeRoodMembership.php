@@ -38,7 +38,7 @@ class CRM_Rood_Form_UpgradeRoodMembership extends CRM_Core_Form {
     try {
       $defaults['rood_mtype'] = civicrm_api3('MembershipType', 'getvalue', array(
         'return' => 'id',
-        'name' => 'Lid ROOD'
+        'name' => 'Lid SP en ROOD'
       ));
     } catch (Exception $e) {
       //do nothing
