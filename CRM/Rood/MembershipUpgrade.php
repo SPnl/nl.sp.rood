@@ -5,15 +5,26 @@ class CRM_Rood_MembershipUpgrade {
   public static function UpgradeFromQueue(CRM_Queue_TaskContext $ctx, $mid, $params) {
     $today = new DateTime();
     $membership = civicrm_api3('Membership', 'getsingle', array('id' => $mid));
+    $oldMembershipStatus = $params['rood_mstatus'];
+    $migratie_lidmaatschappen_cg = civicrm_api3('CustomGroup', 'getvalue', array(
+      'return' => 'id',
+      'name' => 'Migratie_Lidmaatschappen',
+    ));
+    $reason_fid = civicrm_api3('CustomField', 'getvalue', array(
+      'return' => 'id',
+      'name' => 'Reden',
+      'custom_group_id' => $migratie_lidmaatschappen_cg,
+    ));
     unset($membership['id']);
 
     $dao = CRM_Core_DAO::executeQuery("
-      SELECT `c`.`id` AS `contribution_id`, MAX(`c`.`receive_date`)
-      FROM `civicrm_membership`
-      LEFT JOIN `civicrm_membership_payment` `mp` ON `civicrm_membership`.`id` = `mp`.`membership_id`
-      LEFT JOIN `civicrm_contribution` `c` ON `mp`.`contribution_id` = `c`.`id` AND c.receive_date <= civicrm_membership.end_date
-      WHERE civicrm_membership.id = %1
-      LIMIT 0, 1", array(1=>array($mid, 'Integer')));
+      SELECT `c`.`id` AS `contribution_id`
+FROM `civicrm_membership`
+INNER JOIN `civicrm_membership_payment` `mp` ON `civicrm_membership`.`id` = `mp`.`membership_id`
+INNER JOIN `civicrm_contribution` `c` ON `mp`.`contribution_id` = `c`.`id` AND c.receive_date <= civicrm_membership.end_date
+WHERE civicrm_membership.id = %1
+ORDER BY c.receive_date DESC
+LIMIT 0, 1", array(1=>array($mid, 'Integer')));
 
     if($dao->fetch()) {
       $contribution = self::getRenewalPayment($dao->contribution_id);
@@ -44,6 +55,9 @@ class CRM_Rood_MembershipUpgrade {
 
 
       $oldMembership['id'] = $mid;
+      $oldMembership['is_override'] = 1;
+      $oldMembership['status_id'] = $oldMembershipStatus;
+      $oldMembership['custom_'.$reason_fid] = '28 jarige';
       $oldMembership['end_date'] = $today->format('Ymd');
       civicrm_api3('Membership', 'create', $oldMembership);
 
@@ -67,14 +81,20 @@ class CRM_Rood_MembershipUpgrade {
     $contribution['receive_date'] = $receiveDate->format('YmdHis');
     $contribution['contribution_status_id'] = 2;//pending
     $instrument_id = self::getPaymenyInstrument($contribution);
+    if ($instrument_id) {
+      $contribution['contribution_payment_instrument_id'] = $instrument_id;
+    }
+    unset($contribution['contribution_payment_instrument']);
     unset($contribution['payment_instrument']);
     unset($contribution['instrument_id']);
-    if ($instrument_id) {
-      $params['contribution_payment_instrument_id'] = $instrument_id;
-    }
     unset($contribution['contribution_id']);
     unset($contribution['invoice_id']);
     unset($contribution['id']);
+
+    unset($contribution['display_name']);
+    unset($contribution['contact_type']);
+    unset($contribution['contact_sub_type']);
+    unset($contribution['sort_name']);
     return $contribution;
   }
 

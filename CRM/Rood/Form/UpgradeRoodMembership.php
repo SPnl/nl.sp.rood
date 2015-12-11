@@ -10,6 +10,7 @@ class CRM_Rood_Form_UpgradeRoodMembership extends CRM_Core_Form {
     $mtypes = CRM_Member_PseudoConstant::membershipType();
     $this->add('select', 'rood_mtype', ts('Rood lidmaatschapstype'), $mtypes, true);
     $this->add('select', 'sp_mtype', ts('SP lidmaatschapstype'), $mtypes, true);
+    $this->add('select', 'rood_mstatus', ts('Beeindig Rood met lidmaatschapstatus'), CRM_Member_PseudoConstant::membershipStatus(NULL, NULL, 'label'), true);
 
     foreach (CRM_Member_PseudoConstant::membershipStatus(NULL, NULL, 'label') as $sId => $sName) {
       $this->_membershipStatus = $this->addElement('checkbox', "member_status_id[$sId]", NULL, $sName);
@@ -39,6 +40,14 @@ class CRM_Rood_Form_UpgradeRoodMembership extends CRM_Core_Form {
       $defaults['rood_mtype'] = civicrm_api3('MembershipType', 'getvalue', array(
         'return' => 'id',
         'name' => 'Lid SP en ROOD'
+      ));
+    } catch (Exception $e) {
+      //do nothing
+    }
+    try {
+      $defaults['rood_mstatus'] = civicrm_api3('MembershipStatus', 'getvalue', array(
+          'return' => 'id',
+          'name' => 'Correctie'
       ));
     } catch (Exception $e) {
       //do nothing
@@ -142,7 +151,7 @@ class CRM_Rood_Form_UpgradeRoodMembership extends CRM_Core_Form {
         'queue' => $queue, //the queue object
         'errorMode'=> CRM_Queue_Runner::ERROR_ABORT, //abort upon error and keep task in queue
         'onEnd' => array('CRM_Rood_Form_UpgradeRoodMembership', 'onEnd'), //method which is called as soon as the queue is finished
-        'onEndUrl' => CRM_Utils_System::url('civicrm', 'reset=1'), //go to page after all tasks are finished
+        'onEndUrl' => CRM_Utils_System::url('civicrm/member/upgrade_rood', 'reset=1'), //go to page after all tasks are finished
       ));
 
       $runner->runAllViaWeb(); // does not return

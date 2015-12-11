@@ -32,6 +32,12 @@
             </tr><tr>
                 <td>{$form.minimum_fee.html}</td><td></td>
             </tr>
+            <tr>
+                <td><label>{ts}Beeindig Rood met lidmaatschap status{/ts}</label><br>
+                    {$form.rood_mstatus.html}
+                </td>
+                <td></td>
+            </tr>
 
             {if (isset($found))}
                 <tr>
