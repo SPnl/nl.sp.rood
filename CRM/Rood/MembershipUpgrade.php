@@ -73,6 +73,12 @@ LIMIT 0, 1", array(1=>array($mid, 'Integer')));
 
     try {
       $contribution = civicrm_api3('Contribution', 'getsingle', array('id' => $contributionId));
+      $sql = "SELECT honor_contact_id, honor_type_id FROM civicrm_contribution WHERE id = %1";
+      $dao = CRM_Core_DAO::executeQuery($sql, array( 1 => array($contribution['id'], 'Integer')));
+      if ($dao->fetch() && $dao->honor_contact_id) {
+        $contribution['honor_contact_id'] = $dao->honor_contact_id;
+        $contribution['honor_type_id'] = $dao->honor_type_id;
+      }
     } catch (Exception $ex) {
       return false;
     }
