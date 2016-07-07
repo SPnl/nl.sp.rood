@@ -144,6 +144,7 @@ class CRM_Rood_Form_UpgradeRoodMembership extends CRM_Core_Form {
         );
         //now add this task to the queue
         $queue->createItem($task);
+        $i++;
       }
 
       $runner = new CRM_Queue_Runner(array(

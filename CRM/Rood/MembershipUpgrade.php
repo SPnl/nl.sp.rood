@@ -43,9 +43,18 @@ LIMIT 0, 1", array(1=>array($mid, 'Integer')));
 
       if ($contribution) {
         $contribution['financial_type_id'] = civicrm_api3('MembershipType', 'getvalue', array('return' => 'financial_type_id', 'id' => $params['sp_mtype']));
-        $result = civicrm_api3('Contribution', 'create', $contribution);
         if (((float) $contribution['total_amount']) < ((float) $params['minimum_fee'])) {
           $contribution['total_amount'] = $params['minimum_fee'];
+        }
+        $result = civicrm_api3('Contribution', 'create', $contribution);
+
+        // Get Soft contributions
+        $softContributions = civicrm_api3('ContributionSoft', 'get', array('contribution_id' => $dao->contribution_id));
+        foreach($softContributions['values'] as $softContribution) {
+          $newSoftContribution = $softContribution;
+          unset($newSoftContribution['id']);
+          $newSoftContribution['contribution_id'] = $result['id'];
+          civicrm_api3('ContributionSoft', 'create', $newSoftContribution);
         }
 
         $membershipPayment['contribution_id'] = $result['id'];
@@ -73,12 +82,6 @@ LIMIT 0, 1", array(1=>array($mid, 'Integer')));
 
     try {
       $contribution = civicrm_api3('Contribution', 'getsingle', array('id' => $contributionId));
-      $sql = "SELECT honor_contact_id, honor_type_id FROM civicrm_contribution WHERE id = %1";
-      $dao = CRM_Core_DAO::executeQuery($sql, array( 1 => array($contribution['id'], 'Integer')));
-      if ($dao->fetch() && $dao->honor_contact_id) {
-        $contribution['honor_contact_id'] = $dao->honor_contact_id;
-        $contribution['honor_type_id'] = $dao->honor_type_id;
-      }
     } catch (Exception $ex) {
       return false;
     }
