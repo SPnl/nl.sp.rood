@@ -88,7 +88,7 @@ LIMIT 0, 1", array(1=>array($mid, 'Integer')));
     $contribution['contribution_status_id'] = 2;//pending
     $instrument_id = self::getPaymenyInstrument($contribution);
     if ($instrument_id) {
-      $contribution['contribution_payment_instrument_id'] = $instrument_id;
+      $contribution['payment_instrument_id'] = $instrument_id;
     }
     unset($contribution['contribution_payment_instrument']);
     unset($contribution['payment_instrument']);
