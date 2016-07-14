@@ -104,6 +104,9 @@ LIMIT 0, 1", array(1=>array($mid, 'Integer')));
     unset($contribution['contact_type']);
     unset($contribution['contact_sub_type']);
     unset($contribution['sort_name']);
+    unset($contribution['soft_credit']);
+    unset($contribution['soft_credit_to']);
+    unset($contribution['soft_credit_id']);
     return $contribution;
   }
 
