@@ -77,7 +77,7 @@ class CRM_Rood_Form_UpgradeRoodMembership extends CRM_Core_Form {
     $date->modify('last day of this year');
     list($defaults['birth_date_to']) = CRM_Utils_Date::setDateDefaults($date->format('Y-m-d'));
 
-    $minimum_fee = CRM_Core_BAO_Setting::getItem('nl.sp.rood', 'minimum_fee', null, '6.00');
+    $minimum_fee = CRM_Core_BAO_Setting::getItem('nl.sp.rood', 'minimum_fee', null, '5.00');
     $defaults['minimum_fee'] = $minimum_fee;
 
     return $defaults;
