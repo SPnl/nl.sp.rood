@@ -1,0 +1,13 @@
+{
+    "name": "spnl/nl.sp.rood",
+    "description": "Verander rood lidmaatschappen in SP lidmaatschappen",
+    "type": "civicrm-module",
+    "license": "AGPL-3.0",
+    "authors": [
+        {
+            "name": "Jaap Jansma - CiviCooP",
+            "email": "helpdesk@civicoop.org"
+        }
+    ],
+    "require": {}
+}
